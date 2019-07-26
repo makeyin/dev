@@ -1,0 +1,3 @@
+Host gitlab git.vpgame.cn
+    HostName git.vpgame.cn
+    StrictHostKeyChecking no

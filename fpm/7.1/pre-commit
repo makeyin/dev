@@ -1,0 +1,48 @@
+#!/bin/bash
+# author : star
+DOCKERBIN="docker exec vp_phptools sh -c "
+PROJECT=$(git rev-parse --show-toplevel)
+LOCAL_PATH=$(readlink ~/Documents/work)/
+DOCKER_PATH="/working/"
+LOCAL_PATH_LENGTH=${#LOCAL_PATH}
+PROJECT=${PROJECT:$LOCAL_PATH_LENGTH}
+#echo $DOCKERBIN "cd $PROJECT && git diff --cached --name-only --diff-filter=ACMR HEAD | grep \\.php"
+SFILES=$($DOCKERBIN "cd $PROJECT && git diff --cached --name-only --diff-filter=ACMR HEAD | grep \\.php")
+
+echo 'Start replace composer mirror domain...'
+N=$($DOCKERBIN "sed -i 's/mirrors.aliyun.com/composer.vpgame.cn/g' $PROJECT/composer.lock")
+echo 'Replace composer mirror domain done...'
+
+echo "Checking PHP Error..."
+N=$($DOCKERBIN "rm -f /tmp/phpfiles")
+for FILE in $SFILES
+do
+    N=$($DOCKERBIN "php -l -d display_errors=0 $PROJECT/$FILE")
+    if [ $? != 0  ]
+    then
+        echo "Fix the error before commit."
+        exit 1
+    fi
+    N=$($DOCKERBIN "echo '$PROJECT/$FILE'>>/tmp/phpfiles")
+done
+
+echo "Running Code Sniffer && Beatiful..."
+PHP_ERROR=0
+N=$($DOCKERBIN "[ -f /tmp/phpfiles ] && echo '1'|| echo '2'")
+if [ $N == 1 ]
+then
+    $DOCKERBIN "phpcs --standard=PSR2 --ignore=database/migrations --encoding=utf-8 --file-list=/tmp/phpfiles"
+    if [ $? != 0 ]
+    then
+        PHP_ERROR=1
+    fi
+fi
+if [ $PHP_ERROR == 1 ]
+then
+    echo "Fix the error before commit."
+    echo "Run Command : "
+    echo "$DOCKERBIN 'phpcbf --standard=PSR2 --encoding=utf-8 --file-list=/tmp/phpfiles'"
+else
+    echo "Good codes!"
+fi
+exit $PHP_ERROR

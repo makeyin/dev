@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - 81:80
+    volumes:
+      - ~/Documents/work/:/working
+      - ./nginx/vhost/:/etc/nginx/conf.d/
+      - /tmp/:/logs/
+    container_name: www
+    networks:
+      - php
+  fpm:
+    image: fpm:php7.16
+    volumes:
+      - ~/Documents/work/:/working
+      - ./fpm/7.1/php.ini:/usr/local/etc/php/php.ini
+      - ./fpm/7.1/www.conf:/usr/local/etc/php-fpm.d/www.conf 
+    container_name: fpm
+    networks:
+      - php
+  mysql:
+    image: daocloud.io/library/mysql:5.7.4
+    ports:
+     - 3306:3306
+    volumes:
+     -  ./data/mysql:/var/lib/mysql
+    container_name: mysql5.7
+    environment :
+      MYSQL_ROOT_PASSWORD : root
+    networks:
+      - php
+
+networks:
+  php:
